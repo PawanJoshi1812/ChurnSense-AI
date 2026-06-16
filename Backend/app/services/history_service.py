@@ -5,8 +5,8 @@ import json
 def save_prediction(input_data, result):
     record = PredictionHistory(
         customer_data=json.dumps(input_data),
-        prediction="Churn" if result["prediction"] == 1 else "No Churn",
-        probability=result["probability"]
+        prediction=result["prediction_label"],
+        probability=result["churn_probability"]
     )
 
     db.session.add(record)
