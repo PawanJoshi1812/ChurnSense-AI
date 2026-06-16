@@ -7,12 +7,18 @@ predict_bp = Blueprint("predict", __name__)
 @predict_bp.route("/predict", methods=["POST"])
 def predict():
     try:
-        features = request.json["features"]
+        data = request.json.get("features", None)
 
-        result = predict_churn(features)
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No features provided"
+            }), 400
 
-        # Save prediction history
-        save_prediction(features, result)
+        result = predict_churn(data)
+
+        # Save history (non-blocking)
+        save_prediction(data, result)
 
         return jsonify({
             "success": True,
