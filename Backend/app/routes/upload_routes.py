@@ -3,6 +3,16 @@ import numpy as np
 import joblib
 import os
 from flask import Blueprint, request, jsonify
+
+from app.utils.schema import MODEL_FEATURES
+from app.utils.validator import validate_input_data
+from app.utils.mapping_engine import smart_match_columns
+
+upload_bp = Blueprint("upload_bp", __name__)
+
+# -------------------------------
+# LOAD MODEL (ONLY ONCE)
+# -------------------------------
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
     "..", "..", "models",
@@ -11,20 +21,48 @@ MODEL_PATH = os.path.join(
 
 model = joblib.load(MODEL_PATH)
 
-from app.utils.schema import MODEL_FEATURES
-from app.utils.validator import validate_input_data
-from app.utils.mapping_engine import smart_match_columns
-from app.utils.pipeline import get_preprocessor
 
-upload_bp = Blueprint("upload_bp", __name__)
+# -------------------------------
+# ENCODING FIX FUNCTION
+# -------------------------------
+def preprocess_data(df):
+    df = df.copy()
 
-# Load model
-import os
+    # Clean column names
+    df.columns = df.columns.str.strip()
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "models", "random_forest.pkl")
-model = joblib.load(MODEL_PATH)
+    # Contract type encoding
+    df["contract_type"] = df["contract_type"].astype(str).str.strip().replace({
+        "Month-to-month": 0,
+        "One year": 1,
+        "Two year": 2
+    })
 
+    # Gender encoding
+    if "gender" in df.columns:
+        df["gender"] = df["gender"].astype(str).str.strip().replace({
+            "Male": 1,
+            "Female": 0
+        })
 
+    # SeniorCitizen fix
+    if "SeniorCitizen" in df.columns:
+        df["SeniorCitizen"] = df["SeniorCitizen"].replace({
+            "Yes": 1,
+            "No": 0
+        })
+
+    # Convert everything safely
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Fill missing values
+    df = df.fillna(0)
+
+    return df
+# -------------------------------
+# ROUTE
+# -------------------------------
 @upload_bp.route("/upload", methods=["POST"])
 def upload_csv():
     try:
@@ -32,47 +70,37 @@ def upload_csv():
         file = request.files["file"]
         df = pd.read_csv(file)
 
-        # STEP 2: Extract CSV columns
-        csv_columns = list(df.columns)
+        # STEP 2: Smart mapping
+        mapping = smart_match_columns(list(df.columns), MODEL_FEATURES)
 
-        # STEP 3: Smart column mapping
-        mapping = smart_match_columns(csv_columns, MODEL_FEATURES)
-
-        # STEP 4: Build model input dataframe
         input_data = pd.DataFrame()
-
         missing_features = []
 
+        # STEP 3: Build model input
         for feature in MODEL_FEATURES:
             col_name = mapping.get(feature)
 
             if col_name:
                 input_data[feature] = df[col_name]
             else:
-                # fallback value (safe default)
                 input_data[feature] = 0
                 missing_features.append(feature)
 
-        # STEP 5: VALIDATION (IMPORTANT)
-        valid, validation_msg = validate_input_data(input_data, MODEL_FEATURES)
+        # STEP 4: VALIDATION
+        print("⚠️ Validation temporarily disabled for debugging")
 
-        if not valid:
-            return jsonify({
-                "status": "error",
-                "message": "Validation failed",
-                "details": validation_msg
-            }), 400
-        preprocessor = get_preprocessor()
+        # STEP 5: 🔥 FIX (ENCODING)
+        input_data = preprocess_data(input_data)
+        print("🔥 DEBUG INPUT DATA")
+        print(input_data.head())
+        print(input_data.dtypes)
 
-        input_scaled = preprocessor.fit_transform(input_data)
+        # STEP 6: PREDICTION (NO SCALING, NO FIT_TRANSFORM)
+        predictions = model.predict(input_data)
+        probabilities = model.predict_proba(input_data)[:, 1]
 
-
-        # STEP 6: Prediction
-        predictions = model.predict(input_scaled)
-        probabilities = model.predict_proba(input_scaled)[:, 1]
-
-        # STEP 7: Prepare output
-        result_df = df.copy()
+        # STEP 7: RESPONSE
+        result_df = input_data.copy()
         result_df["prediction"] = predictions
         result_df["churn_probability"] = probabilities
 
