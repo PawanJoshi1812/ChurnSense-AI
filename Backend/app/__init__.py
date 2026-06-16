@@ -20,6 +20,9 @@ def create_app():
     # Initialize DB
     db.init_app(app)
 
+    with app.app_context():
+        db.create_all()
+
     # Register Blueprints (we already created one)
     from app.routes.health_routes import health_bp
     app.register_blueprint(health_bp)
