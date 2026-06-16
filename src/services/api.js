@@ -4,36 +4,24 @@ const API = axios.create({
   baseURL: "https://churnsense-ai-i01u.onrender.com",
 });
 
-// Single Prediction
+// SINGLE PREDICTION
 export const predictChurn = (data) => {
-  return API.post("/predict", {
-    features: [
-      Number(data.tenure),
-      Number(data.monthly_charges),
-      Number(data.total_charges),
-      Number(data.support_tickets),
-      Number(data.contract_type),
-      Number(data.payment_delay),
-    ],
-  });
+  return API.post("/predict", data);
 };
 
-// Bulk Prediction
+// BULK PREDICTION
 export const bulkPredict = (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  return API.post("/upload", formData);
+  return API.post("/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 };
 
-// Prediction History
+// HISTORY (NEW)
 export const getHistory = () => {
   return API.get("/history");
 };
-
-// Explain Prediction
-export const explainPrediction = (data) => {
-  return API.post("/explain", data);
-};
-
-export default API;
