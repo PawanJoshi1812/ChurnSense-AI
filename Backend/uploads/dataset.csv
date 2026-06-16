@@ -1,0 +1,11 @@
+customer_id,tenure,monthly_charges,total_charges,support_tickets,contract_type,payment_delay,churn
+1,1,70,70,5,month-to-month,10,1
+2,12,80,960,1,one_year,2,0
+3,5,90,450,4,month-to-month,8,1
+4,24,60,1440,0,two_year,1,0
+5,3,75,225,6,month-to-month,12,1
+6,18,65,1170,1,one_year,3,0
+7,2,85,170,7,month-to-month,15,1
+8,30,55,1650,0,two_year,0,0
+9,10,78,780,3,month-to-month,6,1
+10,20,68,1360,1,one_year,2,0
