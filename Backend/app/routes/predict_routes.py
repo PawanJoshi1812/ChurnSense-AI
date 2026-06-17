@@ -7,24 +7,38 @@ predict_bp = Blueprint("predict", __name__)
 @predict_bp.route("/predict", methods=["POST"])
 def predict():
     try:
-        data = request.json.get("features", None)
+        data = request.get_json()
 
-        if not data:
+        # ✅ strict validation
+        if not data or "features" not in data:
             return jsonify({
                 "success": False,
-                "error": "No features provided"
+                "error": "Request must contain 'features' array"
             }), 400
 
-        result = predict_churn(data)
+        features = data["features"]
 
-        # Save history (non-blocking)
-        save_prediction(data, result)
+        # ✅ extra safety check
+        if not isinstance(features, list) or len(features) != 6:
+            return jsonify({
+                "success": False,
+                "error": "Features must be a list of 6 numeric values"
+            }), 400
+
+        # 🔮 prediction
+        result = predict_churn(features)
+
+        # 💾 save history (safe)
+        try:
+            save_prediction(features, result)
+        except Exception as history_error:
+            print("History save failed:", history_error)
 
         return jsonify({
             "success": True,
             "prediction": result["prediction"],
             "prediction_label": result["prediction_label"],
-            "churn_probability": round(result["churn_probability"], 2)
+            "churn_probability": round(float(result["churn_probability"]), 2)
         })
 
     except Exception as e:
