@@ -35,7 +35,7 @@ export default function SinglePrediction() {
   ]
 };
 
-      const res = await predictChurn(payload);
+     const res = await predictChurn(payload.features);
       console.log("Single Prediction Response:", res.data);
       setResult(res.data);
     } catch (error) {
