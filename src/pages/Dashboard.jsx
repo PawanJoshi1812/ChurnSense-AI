@@ -15,9 +15,7 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const res = await getHistory();
-        const data = res.data;
-
-        const history = data.history || [];
+        const history = res.data.data || [];
 
         const total = history.length;
         const churn = history.filter((h) => h.prediction === "Churn").length;

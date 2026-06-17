@@ -24,31 +24,29 @@ export default function SinglePrediction() {
 
     try {
       const payload = {
-        tenure: Number(form.tenure),
-        monthly_charges: Number(form.monthlyCharges),
-        total_charges: Number(form.totalCharges),
-        support_tickets: Number(form.supportTickets),
-        contract_type:
-          form.contract === "Month-to-month"
-            ? 0
-            : form.contract === "One year"
-            ? 1
-            : 2,
-        payment_delay: Number(form.paymentDelay),
-      };
+  features: [
+    Number(form.tenure || 0),
+    Number(form.monthlyCharges || 0),
+    Number(form.totalCharges || 0),
+    Number(0),
+    form.contract === "Month-to-month" ? 0 :
+    form.contract === "One year" ? 1 : 2,
+    Number(0)
+  ]
+};
 
       const res = await predictChurn(payload);
       console.log("Single Prediction Response:", res.data);
       setResult(res.data);
     } catch (error) {
-      console.error(error);
+  console.log("FULL ERROR:", error.response?.data);
+  console.log("STATUS:", error.response?.status);
+  console.log("MESSAGE:", error.message);
 
-      setResult({
-        error:
-          error?.response?.data?.message ||
-          "Prediction failed. Check backend.",
-      });
-    } finally {
+  setResult({
+    error: JSON.stringify(error.response?.data || error.message),
+  });
+} finally {
       setLoading(false);
     }
   };
