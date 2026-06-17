@@ -9,6 +9,7 @@ def predict():
     try:
         # ✅ safer JSON parsing for production (Render fixes)
         data = request.get_json(silent=True) or {}
+        print("DEBUG RECEIVED:", data, type(data))
 
         features = data.get("features", None)
 
