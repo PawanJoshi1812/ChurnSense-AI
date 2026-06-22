@@ -60,6 +60,8 @@ def preprocess_data(df):
     df = df.fillna(0)
 
     return df
+
+
 # -------------------------------
 # ROUTE
 # -------------------------------
@@ -86,30 +88,35 @@ def upload_csv():
                 input_data[feature] = 0
                 missing_features.append(feature)
 
-        # STEP 4: VALIDATION
+        # STEP 4: Validation
         print("⚠️ Validation temporarily disabled for debugging")
 
-        # STEP 5: 🔥 FIX (ENCODING)
+        # STEP 5: Preprocess
         input_data = preprocess_data(input_data)
+
         print("🔥 DEBUG INPUT DATA")
         print(input_data.head())
         print(input_data.dtypes)
 
-        # STEP 6: PREDICTION (NO SCALING, NO FIT_TRANSFORM)
+        # STEP 6: Prediction
         predictions = model.predict(input_data)
         probabilities = model.predict_proba(input_data)[:, 1]
 
-        # STEP 7: RESPONSE
+        # STEP 7: Build Results
         result_df = input_data.copy()
         result_df["prediction"] = predictions
-        result_df["churn_probability"] = probabilities
+        result_df["churn_probability"] = probabilities.round(2)
 
+        # STEP 8: Response
         return jsonify({
             "status": "success",
             "rows_processed": len(df),
+            "total_predictions": len(result_df),
             "mapping_used": mapping,
             "missing_features_filled": missing_features,
-            "sample_output": result_df.head(5).to_dict(orient="records")
+
+            # Show first 50 customers instead of 5
+            "sample_output": result_df.head(50).to_dict(orient="records")
         })
 
     except Exception as e:
@@ -117,3 +124,4 @@ def upload_csv():
             "status": "error",
             "message": str(e)
         }), 500
+
